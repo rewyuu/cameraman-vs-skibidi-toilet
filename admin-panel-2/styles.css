@@ -1,0 +1,96 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+}
+
+.admin-panel {
+    display: flex;
+}
+
+.left-panel {
+    width: 220px; 
+    background-color: #333;
+    color: white;
+    padding: 30px; 
+    height: 100vh;
+    position: fixed;
+    transition: width 0.3s;
+}
+
+.left-panel h1 {
+    font-size: 24px;
+    color: white; 
+}
+
+.left-panel nav ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.left-panel nav ul li {
+    margin: 10px 0;
+}
+
+.left-panel nav ul li a {
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s;
+    display: block;
+    padding: 10px 15px; 
+}
+
+.left-panel nav ul li a:hover {
+    background-color: rgba(21, 21, 21, 0.595); 
+}
+
+.middle-section {
+    margin-left: 250px; 
+    padding: 20px;
+    width: calc(100% - 250px); 
+    transition: margin-left 0.3s;
+}
+
+.middle-section h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+}
+
+.alert {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table, .th, .td {
+    border: 1px solid #ddd;
+}
+
+.th, .td {
+    padding: 8px;
+    text-align: left;
+}
+
+.th {
+    background-color: #333;
+    color: white;
+}
+
+.img-thumbnail {
+    width: 50px;
+    height: 50px;
+}
+
+.actions-form {
+    display: inline-block;
+    margin-right: 10px;
+}
+
