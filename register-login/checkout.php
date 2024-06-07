@@ -64,15 +64,24 @@ function updateCartCount($conn, $userID, $cartCount) {
 
 $totalPriceWithVatFormatted = number_format($totalPriceWithVat, 2);
 
-if (isset($_POST['place_order'])) {
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $payment_method = $_POST['payment_method'];
 
-    if ($payment_method == 'Gcash') {
-        header('Location: gcashPayment.php?total_price=' . urlencode($totalPriceWithVatFormatted));
-        exit;
-    }
+    if (isset($_POST['place_order'])) {
+        $name = $_POST['name'];
+        $email = $_POST['email'];
+        $payment_method = $_POST['payment_method'];
+    
+        if ($payment_method == 'Gcash') {
+            $_SESSION['gcash_order'] = [
+                'user_id' => $userID,
+                'address' => $userAddress,
+                'payment_method' => $payment_method,
+                'ordered_items' => $orderedItems,
+                'total_price' => $totalPriceWithVat
+            ];
+    
+            header('Location: gcashPayment.php?total_price=' . urlencode($totalPriceWithVatFormatted));
+            exit;
+        }
 
     if (isset($_POST['use_different_number'])) {
         $phone = $_POST['new_number'];
@@ -137,6 +146,7 @@ if (isset($_POST['place_order'])) {
 
 $conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

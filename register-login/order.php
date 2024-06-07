@@ -22,10 +22,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['cancel_order'])) {
     exit();
 }
 
-$query = "SELECT o.id, o.address as order_address, o.payment_type, o.status, o.ordered_items, o.total_price, o.created_at, u.full_name, u.phone 
+$query = "SELECT o.id, o.address as order_address, o.payment_type, o.status, o.ordered_items, o.total_price, o.created_at, u.full_name, u.phone, 
+                 gi.name AS gcash_name, gi.number AS gcash_number, gi.reference_number AS gcash_reference_number
           FROM orders o 
           INNER JOIN users u ON o.user_id = u.id
+          LEFT JOIN gcash_info gi ON o.id = gi.id
           WHERE o.user_id = ?";
+
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $userID);
 $stmt->execute();
@@ -209,6 +212,20 @@ $conn->close();
                         <span>Total Price:</span>
                         <span><?php echo 'P' . number_format($order['total_price'], 2); ?></span>
                     </div>
+                    <?php if ($order['payment_type'] === 'Gcash') : ?>
+                        <div class="item-info">
+                            <span>Gcash Name:</span>
+                            <span><?php echo htmlspecialchars($order['gcash_name']); ?></span>
+                        </div>
+                        <div class="item-info">
+                            <span>Gcash Number:</span>
+                            <span><?php echo htmlspecialchars($order['gcash_number']); ?></span>
+                        </div>
+                        <div class="item-info">
+                            <span>Gcash Reference Number:</span>
+                            <span><?php echo htmlspecialchars($order['gcash_reference_number']); ?></span>
+                        </div>
+                    <?php endif; ?>
                     <?php if ($order['status'] === 'Pending') : ?>
                         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
                             <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
