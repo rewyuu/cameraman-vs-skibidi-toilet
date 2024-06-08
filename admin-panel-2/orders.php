@@ -38,7 +38,7 @@ function fetchOrders($status) {
 
 function fetchGcashInfo($order_id) {
     global $conn;
-    $sql = "SELECT * FROM gcash_info WHERE id = '$order_id'"; // Ensure the column name is 'id' in gcash_info table
+    $sql = "SELECT * FROM gcash_info WHERE id = '$order_id'";
     return mysqli_fetch_assoc(mysqli_query($conn, $sql));
 }
 
