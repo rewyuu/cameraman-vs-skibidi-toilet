@@ -22,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['cancel_order'])) {
     exit();
 }
 
-$query = "SELECT o.id, o.address as order_address, o.payment_type, o.status, o.ordered_items, o.total_price, o.created_at, u.full_name, u.phone, 
+$query = "SELECT o.id, o.address as order_address, o.payment_type, o.status, o.ordered_items, o.total_price, o.created_at, u.full_name, o.phone, 
                  gi.name AS gcash_name, gi.number AS gcash_number, gi.reference_number AS gcash_reference_number
           FROM orders o 
           INNER JOIN users u ON o.user_id = u.id

@@ -63,6 +63,7 @@ if (isset($_POST['place_order'])) {
     $name = $_POST['name'];
     $email = $_POST['email'];
     $payment_method = $_POST['payment_method'];
+    $phone = isset($_POST['use_different_number']) ? $_POST['new_number'] : $userPhone;
 
     if ($payment_method == 'Gcash') {
         $_SESSION['gcash_order'] = [
@@ -80,7 +81,6 @@ if (isset($_POST['place_order'])) {
     $phone = isset($_POST['use_different_number']) ? $_POST['new_number'] : $userPhone;
     $address = $_POST['address_option'] === 'new' ? $_POST['street'] . ', ' . $_POST['city'] . ', ' . $_POST['zipcode'] . ', ' . $_POST['region'] : $userAddress;
 
-    // Update user phone
     if ($phone !== $userPhone) {
         $update_phone_query = "UPDATE users SET phone = ? WHERE id = ?";
         $stmt = $conn->prepare($update_phone_query);
@@ -89,7 +89,6 @@ if (isset($_POST['place_order'])) {
         $stmt->close();
     }
 
-    // Update user name
     if ($name !== $userName) {
         $update_name_query = "UPDATE users SET full_name = ? WHERE id = ?";
         $stmt = $conn->prepare($update_name_query);
@@ -98,7 +97,6 @@ if (isset($_POST['place_order'])) {
         $stmt->close();
     }
 
-    // Update senior/PWD status
     if (isset($_POST['is_senior_or_pwd'])) {
         $isSeniorOrPwd = 1;
         $discountAmount = $totalPriceWithVat * $seniorDiscountRate;
@@ -110,22 +108,19 @@ if (isset($_POST['place_order'])) {
         $stmt->close();
     }
 
-    // Insert order
-    $insert_order_query = "INSERT INTO orders (user_id, address, payment_type, ordered_items, total_price) VALUES (?, ?, ?, ?, ?)";
+    $insert_order_query = "INSERT INTO orders (user_id, phone, address, payment_type, ordered_items, total_price) VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($insert_order_query);
-    $stmt->bind_param("isssd", $userID, $address, $payment_method, json_encode($orderedItems), $totalPriceWithVat);
+    $stmt->bind_param("issssd", $userID, $phone, $address, $payment_method, json_encode($orderedItems), $totalPriceWithVat);
     $stmt->execute();
     $order_id = $stmt->insert_id;
     $stmt->close();
 
-    // Clear cart
     $clear_cart_query = "DELETE FROM cart_items WHERE user_id = ?";
     $stmt = $conn->prepare($clear_cart_query);
     $stmt->bind_param("i", $userID);
     $stmt->execute();
     $stmt->close();
 
-    // Update cart count
     $_SESSION['cart_count'] = 0;
     $query = "UPDATE users SET cart_count = 0 WHERE id = ?";
     $stmt = $conn->prepare($query);
