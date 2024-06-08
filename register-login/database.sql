@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 07, 2024 at 04:36 PM
+-- Generation Time: Jun 08, 2024 at 03:48 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -35,13 +35,6 @@ CREATE TABLE `cart_items` (
   `quantity` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `cart_items`
---
-
-INSERT INTO `cart_items` (`id`, `user_id`, `item_name`, `item_price`, `quantity`) VALUES
-(7, 2, 'Bulalo', 130.00, 1);
-
 -- --------------------------------------------------------
 
 --
@@ -61,9 +54,7 @@ CREATE TABLE `gcash_info` (
 --
 
 INSERT INTO `gcash_info` (`id`, `user_id`, `reference_number`, `name`, `number`) VALUES
-(1, 2, 'adasdas', 'dsadad', 'a2e2e2'),
-(2, 2, '2e2312', 'sdad', 'sadada'),
-(3, 2, 'adsada', 'adadsad', 'asssdsa');
+(1, 2, 'safdaafsa', 'heh', '09222222222');
 
 -- --------------------------------------------------------
 
@@ -79,19 +70,16 @@ CREATE TABLE `orders` (
   `total_price` decimal(10,2) NOT NULL,
   `status` enum('Pending','Order Accepted','Order Declined','Delivered','On Delivery','Cancelled') DEFAULT 'Pending',
   `ordered_items` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`ordered_items`)),
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `phone` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `orders`
 --
 
-INSERT INTO `orders` (`id`, `user_id`, `address`, `payment_type`, `total_price`, `status`, `ordered_items`, `created_at`) VALUES
-(1, 2, 'ayawkol st.', 'Cash on Delivery', 116.48, 'Order Accepted', '[{\"item_name\":\"Bulalo\",\"item_price\":\"130.00\",\"quantity\":1}]', '2024-06-01 07:23:42'),
-(2, 2, 'ayawkol st.', 'Gcash', 116.48, 'Pending', '[{\"item_name\":\"Bulalo\",\"item_price\":\"130.00\",\"quantity\":1}]', '2024-06-01 07:24:06'),
-(3, 2, 'ayawkol st.', 'Cash on Delivery', 582.40, 'Pending', '[{\"item_name\":\"Bulalo\",\"item_price\":\"130.00\",\"quantity\":5}]', '2024-06-01 07:37:54'),
-(4, 2, 'ayawkol st.', 'Gcash', 232.96, 'Pending', '[{\"item_name\":\"Bulalo\",\"item_price\":\"130.00\",\"quantity\":2}]', '2024-06-07 11:52:09'),
-(5, 2, 'ayawkol st.', 'Gcash', 116.48, 'Pending', '[{\"item_name\":\"Bulalo\",\"item_price\":\"130.00\",\"quantity\":1}]', '2024-06-07 12:09:34');
+INSERT INTO `orders` (`id`, `user_id`, `address`, `payment_type`, `total_price`, `status`, `ordered_items`, `created_at`, `phone`) VALUES
+(1, 2, 'ayawkol st.', 'Gcash', 291.20, 'Pending', '[{\"item_name\":\"Bulalo\",\"item_price\":\"130.00\",\"quantity\":2}]', '2024-06-08 01:35:08', NULL);
 
 -- --------------------------------------------------------
 
@@ -119,22 +107,6 @@ INSERT INTO `products` (`id`, `name`, `price`, `image`, `category`, `total_price
 -- --------------------------------------------------------
 
 --
--- Table structure for table `senior_citizen_info`
---
-
-CREATE TABLE `senior_citizen_info` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `address` varchar(255) NOT NULL,
-  `id_no` varchar(50) NOT NULL,
-  `birthdate` date NOT NULL,
-  `age` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `users`
 --
 
@@ -156,7 +128,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `username`, `full_name`, `email`, `password`, `phone`, `address`, `cart_count`, `is_senior_or_pwd`) VALUES
 (1, 'admin', '', 'yes', 'bisayaslayers', '6942022222', 'yes yes yes', 0, 0),
-(2, 'skibidosawsd', 'louie puso manuel', 'yawaoten@yahoo.com', 'A!@2yawabahogoten', '09222222222', 'ayawkol st.', 1, 0);
+(2, 'skibidosawsd', 'louie puso manuel', 'yawaoten@yahoo.com', 'A!@2yawabahogoten', '09222222222', 'ayawkol st.', 0, 0);
 
 --
 -- Indexes for dumped tables
@@ -188,12 +160,6 @@ ALTER TABLE `products`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `senior_citizen_info`
---
-ALTER TABLE `senior_citizen_info`
-  ADD PRIMARY KEY (`id`);
-
---
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -208,31 +174,25 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT for table `gcash_info`
 --
 ALTER TABLE `gcash_info`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT for table `senior_citizen_info`
---
-ALTER TABLE `senior_citizen_info`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
