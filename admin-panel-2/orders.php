@@ -1,4 +1,10 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+include('../register-login/database.php');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_order'])) {
 
@@ -7,13 +13,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $sql = "UPDATE orders SET status = '$status' WHERE id = '$order_id'";
         if (mysqli_query($conn, $sql)) {
-            $message = "Order status updated successfully.";
-        } 
-        else {
-            $message = "Error updating order status: " . mysqli_error($conn);
+            $_SESSION['message'] = "Order status updated successfully.";
+        } else {
+            $_SESSION['message'] = "Error updating order status: " . mysqli_error($conn);
         }
-            header("Location: admin.php?page=orders");
-            exit;
+        header("Location: admin.php?page=orders");
+        exit;
     }
 }
 
@@ -22,35 +27,27 @@ if (isset($_SESSION['message'])) {
     unset($_SESSION['message']);
 }
 
-$pending_orders = mysqli_query($conn, "SELECT orders.*, users.phone 
-                                      FROM orders 
-                                      JOIN users ON orders.user_id = users.id 
-                                      WHERE status = 'Pending'");
+function fetchOrders($status) {
+    global $conn;
+    $sql = "SELECT orders.*, users.phone 
+            FROM orders 
+            JOIN users ON orders.user_id = users.id 
+            WHERE status = '$status'";
+    return mysqli_query($conn, $sql);
+}
 
-$accepted_orders = mysqli_query($conn, "SELECT orders.*, users.phone 
-                                       FROM orders 
-                                       JOIN users ON orders.user_id = users.id 
-                                       WHERE status = 'Order Accepted'");
+function fetchGcashInfo($order_id) {
+    global $conn;
+    $sql = "SELECT * FROM gcash_info WHERE id = '$order_id'"; // Ensure the column name is 'id' in gcash_info table
+    return mysqli_fetch_assoc(mysqli_query($conn, $sql));
+}
 
-$declined_orders = mysqli_query($conn, "SELECT orders.*, users.phone 
-                                       FROM orders 
-                                       JOIN users ON orders.user_id = users.id 
-                                       WHERE status = 'Order Declined'");
-
-$delivered_orders = mysqli_query($conn, "SELECT orders.*, users.phone 
-                                        FROM orders 
-                                        JOIN users ON orders.user_id = users.id 
-                                        WHERE status = 'Delivered'");
-
-$on_delivery_orders = mysqli_query($conn, "SELECT orders.*, users.phone 
-                                          FROM orders 
-                                          JOIN users ON orders.user_id = users.id 
-                                          WHERE status = 'On Delivery'");
-
-$cancelled_orders = mysqli_query($conn, "SELECT orders.*, users.phone 
-                                        FROM orders 
-                                        JOIN users ON orders.user_id = users.id 
-                                        WHERE status = 'Cancelled'");
+$pending_orders = fetchOrders('Pending');
+$accepted_orders = fetchOrders('Order Accepted');
+$declined_orders = fetchOrders('Order Declined');
+$delivered_orders = fetchOrders('Delivered');
+$on_delivery_orders = fetchOrders('On Delivery');
+$cancelled_orders = fetchOrders('Cancelled');
 ?>
 
 <!DOCTYPE html>
@@ -65,7 +62,7 @@ $cancelled_orders = mysqli_query($conn, "SELECT orders.*, users.phone
 <div class="container">
     <h2>Manage Orders</h2>
 
-     <?php if (!empty($message)): ?>
+    <?php if (!empty($message)): ?>
         <div class="alert alert-success"><?php echo $message; ?></div>
     <?php endif; ?> 
 
@@ -78,275 +75,74 @@ $cancelled_orders = mysqli_query($conn, "SELECT orders.*, users.phone
         <a href="#cancelled" class="btn btn-primary">Cancelled Orders</a>
     </div>
 
-    <!-- Pending Orders -->
-    <h3 id="pending">Pending Orders</h3>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>User Phone</th>
-                <th>Status</th>
-                <th>Ordered Items</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($order = mysqli_fetch_assoc($pending_orders)): ?>
-            <tr>
-                <td><?php echo $order['id']; ?></td>
-                <td><?php echo $order['phone']; ?></td>
+    <?php 
+    function renderOrdersTable($orders, $title) {
+        echo "<h3 id='" . strtolower(str_replace(' ', '_', $title)) . "'>$title</h3>";
+        echo "<table class='table table-bordered'>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>User Phone</th>
+                    <th>Status</th>
+                    <th>Ordered Items</th>
+                    <th>Address</th>
+                    <th>Payment Type</th>
+                    <th>Total Price</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>";
+        
+        while ($order = mysqli_fetch_assoc($orders)) {
+            echo "<tr>
+                <td>{$order['id']}</td>
+                <td>{$order['phone']}</td>
                 <td>
-                    <form action="admin.php?page=orders" method="post">
-                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                        <select name="status" class="form-control">
-                            <option value="Pending" <?php if ($order['status'] == 'Pending') echo 'selected'; ?>>Pending</option>
-                            <option value="Order Accepted" <?php if ($order['status'] == 'Order Accepted') echo 'selected'; ?>>Order Accepted</option>
-                            <option value="Order Declined" <?php if ($order['status'] == 'Order Declined') echo 'selected'; ?>>Order Declined</option>
-                            <option value="Delivered" <?php if ($order['status'] == 'Delivered') echo 'selected'; ?>>Delivered</option>
-                            <option value="On Delivery" <?php if ($order['status'] == 'On Delivery') echo 'selected'; ?>>On Delivery</option>
-                            <option value="Cancelled" <?php if ($order['status'] == 'Cancelled') echo 'selected'; ?>>Cancelled</option>
+                    <form action='admin.php?page=orders' method='post'>
+                        <input type='hidden' name='order_id' value='{$order['id']}'>
+                        <select name='status' class='form-control'>
+                            <option value='Pending' " . ($order['status'] == 'Pending' ? 'selected' : '') . ">Pending</option>
+                            <option value='Order Accepted' " . ($order['status'] == 'Order Accepted' ? 'selected' : '') . ">Order Accepted</option>
+                            <option value='Order Declined' " . ($order['status'] == 'Order Declined' ? 'selected' : '') . ">Order Declined</option>
+                            <option value='Delivered' " . ($order['status'] == 'Delivered' ? 'selected' : '') . ">Delivered</option>
+                            <option value='On Delivery' " . ($order['status'] == 'On Delivery' ? 'selected' : '') . ">On Delivery</option>
+                            <option value='Cancelled' " . ($order['status'] == 'Cancelled' ? 'selected' : '') . ">Cancelled</option>
                         </select>
-                        <button type="submit" name="update_order" class="btn btn-warning mt-2">Update</button>
+                        <button type='submit' name='update_order' class='btn btn-warning mt-2'>Update</button>
                     </form>
                 </td>
-                <td>
-                    <?php
-                        $ordered_items = json_decode($order['ordered_items'], true);
-                        foreach ($ordered_items as $item) {
-                            echo "{$item['item_name']} - {$item['quantity']} <br>";
-                        }
-                    ?>
-                </td>
-                <td><?php echo $order['created_at']; ?></td>
-            </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
+                <td>";
+                $ordered_items = json_decode($order['ordered_items'], true);
+                foreach ($ordered_items as $item) {
+                    echo "{$item['item_name']} - {$item['quantity']} <br>";
+                }
+            echo "</td>
+                <td>{$order['address']}</td>
+                <td>{$order['payment_type']}";
+            if ($order['payment_type'] == 'Gcash') {
+                $gcash_info = fetchGcashInfo($order['id']);
+                if ($gcash_info) {
+                    echo "<br>Name: " . htmlspecialchars($gcash_info['name']) .
+                         "<br>Number: " . htmlspecialchars($gcash_info['number']) .
+                         "<br>Reference Number: " . htmlspecialchars($gcash_info['reference_number']);
+                }
+            }
+            echo "</td>
+                <td>{$order['total_price']}</td>
+                <td>{$order['created_at']}</td>
+            </tr>";
+        }
+        echo "</tbody>
+        </table>";
+    }
 
-    <!-- Accepted Orders -->
-    <h3 id="accepted">Accepted Orders</h3>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>User Phone</th>
-                <th>Status</th>
-                <th>Ordered Items</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($order = mysqli_fetch_assoc($accepted_orders)): ?>
-            <tr>
-                <td><?php echo $order['id']; ?></td>
-                <td><?php echo $order['phone']; ?></td>
-                <td>
-                    <form action="admin.php?page=orders" method="post">
-                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                        <select name="status" class="form-control">
-                            <option value="Pending" <?php if ($order['status'] == 'Pending') echo 'selected'; ?>>Pending</option>
-                            <option value="Order Accepted" <?php if ($order['status'] == 'Order Accepted') echo 'selected'; ?>>Order Accepted</option>
-                            <option value="Order Declined" <?php if ($order['status'] == 'Order Declined') echo 'selected'; ?>>Order Declined</option>
-                            <option value="Delivered" <?php if ($order['status'] == 'Delivered') echo 'selected'; ?>>Delivered</option>
-                            <option value="On Delivery" <?php if ($order['status'] == 'On Delivery') echo 'selected'; ?>>On Delivery</option>
-                            <option value="Cancelled" <?php if ($order['status'] == 'Cancelled') echo 'selected'; ?>>Cancelled</option>
-                        </select>
-                        <button type="submit" name="update_order" class="btn btn-warning mt-2">Update</button>
-                    </form>
-                </td>
-                <td>
-                    <?php
-                        $ordered_items = json_decode($order['ordered_items'], true);
-                        foreach ($ordered_items as $item) {
-                            echo "{$item['item_name']} - {$item['quantity']} <br>";
-                        }
-                    ?>
-                </td>
-                <td><?php echo $order['created_at']; ?></td>
-            </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
-
-    <!-- Declined Orders -->
-    <h3 id="declined">Declined Orders</h3>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>User Phone</th>
-                <th>Status</th>
-                <th>Ordered Items</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($order = mysqli_fetch_assoc($declined_orders)): ?>
-            <tr>
-                <td><?php echo $order['id']; ?></td>
-                <td><?php echo $order['phone']; ?></td>
-                <td>
-                    <form action="admin.php?page=orders" method="post">
-                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                        <select name="status" class="form-control">
-                            <option value="Pending" <?php if ($order['status'] == 'Pending') echo 'selected'; ?>>Pending</option>
-                            <option value="Order Accepted" <?php if ($order['status'] == 'Order Accepted') echo 'selected'; ?>>Order Accepted</option>
-                            <option value="Order Declined" <?php if ($order['status'] == 'Order Declined') echo 'selected'; ?>>Order Declined</option>
-                            <option value="Delivered" <?php if ($order['status'] == 'Delivered') echo 'selected'; ?>>Delivered</option>
-                            <option value="On Delivery" <?php if ($order['status'] == 'On Delivery') echo 'selected'; ?>>On Delivery</option>
-                            <option value="Cancelled" <?php if ($order['status'] == 'Cancelled') echo 'selected'; ?>>Cancelled</option>
-                        </select>
-                        <button type="submit" name="update_order" class="btn btn-warning mt-2">Update</button>
-                    </form>
-                </td>
-                <td>
-                    <?php
-                        $ordered_items = json_decode($order['ordered_items'], true);
-                        foreach ($ordered_items as $item) {
-                            echo "{$item['item_name']} - {$item['quantity']} <br>";
-                        }
-                    ?>
-                </td>
-                <td><?php echo $order['created_at']; ?></td>
-            </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
-
-    <!-- On Delivery Orders -->
-    <h3 id="on_delivery">On Delivery</h3>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>User Phone</th>
-                <th>Status</th>
-                <th>Ordered Items</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($order = mysqli_fetch_assoc($on_delivery_orders)): ?>
-            <tr>
-                <td><?php echo $order['id']; ?></td>
-                <td><?php echo $order['phone']; ?></td>
-                <td>
-                    <form action="admin.php?page=orders" method="post">
-                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                        <select name="status" class="form-control">
-                            <option value="Pending" <?php if ($order['status'] == 'Pending') echo 'selected'; ?>>Pending</option>
-                            <option value="Order Accepted" <?php if ($order['status'] == 'Order Accepted') echo 'selected'; ?>>Order Accepted</option>
-                            <option value="Order Declined" <?php if ($order['status'] == 'Order Declined') echo 'selected'; ?>>Order Declined</option>
-                            <option value="Delivered" <?php if ($order['status'] == 'Delivered') echo 'selected'; ?>>Delivered</option>
-                            <option value="On Delivery" <?php if ($order['status'] == 'On Delivery') echo 'selected'; ?>>On Delivery</option>
-                            <option value="Cancelled" <?php if ($order['status'] == 'Cancelled') echo 'selected'; ?>>Cancelled</option>
-                        </select>
-                        <button type="submit" name="update_order" class="btn btn-warning mt-2">Update</button>
-                    </form>
-                </td>
-                <td>
-                    <?php
-                        $ordered_items = json_decode($order['ordered_items'], true);
-                        foreach ($ordered_items as $item) {
-                            echo "{$item['item_name']} - {$item['quantity']} <br>";
-                        }
-                    ?>
-                </td>
-                <td><?php echo $order['created_at']; ?></td>
-            </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
-
-    <!-- Delivered Orders -->
-    <h3 id="delivered">Delivered Orders</h3>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>User Phone</th>
-                <th>Status</th>
-                <th>Ordered Items</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($order = mysqli_fetch_assoc($delivered_orders)): ?>
-            <tr>
-                <td><?php echo $order['id']; ?></td>
-                <td><?php echo $order['phone']; ?></td>
-                <td>
-                    <form action="admin.php?page=orders" method="post">
-                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                        <select name="status" class="form-control">
-                            <option value="Pending" <?php if ($order['status'] == 'Pending') echo 'selected'; ?>>Pending</option>
-                            <option value="Order Accepted" <?php if ($order['status'] == 'Order Accepted') echo 'selected'; ?>>Order Accepted</option>
-                            <option value="Order Declined" <?php if ($order['status'] == 'Order Declined') echo 'selected'; ?>>Order Declined</option>
-                            <option value="Delivered" <?php if ($order['status'] == 'Delivered') echo 'selected'; ?>>Delivered</option>
-                            <option value="On Delivery" <?php if ($order['status'] == 'On Delivery') echo 'selected'; ?>>On Delivery</option>
-                            <option value="Cancelled" <?php if ($order['status'] == 'Cancelled') echo 'selected'; ?>>Cancelled</option>
-                        </select>
-                        <button type="submit" name="update_order" class="btn btn-warning mt-2">Update</button>
-                    </form>
-                </td>
-                <td>
-                    <?php
-                        $ordered_items = json_decode($order['ordered_items'], true);
-                        foreach ($ordered_items as $item) {
-                            echo "{$item['item_name']} - {$item['quantity']} <br>";
-                        }
-                    ?>
-                </td>
-                <td><?php echo $order['created_at']; ?></td>
-            </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
-
-    <!-- Cancelled Orders -->
-    <h3 id="cancelled">Cancelled Orders</h3>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Order ID</th>
-                <th>User Phone</th>
-                <th>Status</th>
-                <th>Ordered Items</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($order = mysqli_fetch_assoc($cancelled_orders)): ?>
-            <tr>
-                <td><?php echo $order['id']; ?></td>
-                <td><?php echo $order['phone']; ?></td>
-                <td>
-                    <form action="admin.php?page=orders" method="post">
-                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                        <select name="status" class="form-control">
-                            <option value="Pending" <?php if ($order['status'] == 'Pending') echo 'selected'; ?>>Pending</option>
-                            <option value="Order Accepted" <?php if ($order['status'] == 'Order Accepted') echo 'selected'; ?>>Order Accepted</option>
-                            <option value="Order Declined" <?php if ($order['status'] == 'Order Declined') echo 'selected'; ?>>Order Declined</option>
-                            <option value="Delivered" <?php if ($order['status'] == 'Delivered') echo 'selected'; ?>>Delivered</option>
-                            <option value="On Delivery" <?php if ($order['status'] == 'On Delivery') echo 'selected'; ?>>On Delivery</option>
-                            <option value="Cancelled" <?php if ($order['status'] == 'Cancelled') echo 'selected'; ?>>Cancelled</option>
-                        </select>
-                        <button type="submit" name="update_order" class="btn btn-warning mt-2">Update</button>
-                    </form>
-                </td>
-                <td>
-                    <?php
-                        $ordered_items = json_decode($order['ordered_items'], true);
-                        foreach ($ordered_items as $item) {
-                            echo "{$item['item_name']} - {$item['quantity']} <br>";
-                        }
-                    ?>
-                </td>
-                <td><?php echo $order['created_at']; ?></td>
-            </tr>
-            <?php endwhile; ?>
-        </tbody>
-    </table>
+    renderOrdersTable($pending_orders, 'Pending Orders');
+    renderOrdersTable($accepted_orders, 'Accepted Orders');
+    renderOrdersTable($declined_orders, 'Declined Orders');
+    renderOrdersTable($on_delivery_orders, 'On Delivery');
+    renderOrdersTable($delivered_orders, 'Delivered Orders');
+    renderOrdersTable($cancelled_orders, 'Cancelled Orders');
+    ?>
 </div>
 </body>
 </html>
